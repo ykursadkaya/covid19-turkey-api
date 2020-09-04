@@ -117,7 +117,8 @@ def generateTimeseries(allDict):
 def routine():
     global allStats, allStatsDict, todayStatsDict, timeSeriesData
 
-    if (allResponse := getStats(allQuery)) != allStats:
+    allResponse = getStats(allQuery)
+    if (allResponse != allStats) and (allResponse is not None):
         allStats = allResponse
         allStatsDict = statsListToDict(allStats)
         lastDate = sorted(list(allStatsDict.keys()), reverse=True)[0]
