@@ -34,15 +34,16 @@ keysTRtoEN = {
 
 
 class TimerThread(Thread):
-    def __init__(self, event, func, *args, **kwargs):
+    def __init__(self, event, interval, func, *args, **kwargs):
         Thread.__init__(self)
         self.stopped = event
+        self.interval = interval
         self.func = func
         self.args = args
         self.kwargs = kwargs
 
     def run(self):
-        while not self.stopped.wait(checkInterval):
+        while not self.stopped.wait(self.interval):
             self.func(*self.args, **self.kwargs)
 
 
@@ -119,7 +120,7 @@ def routine():
 
     allResponse = getStats(allQuery)
     if (allResponse != allStats) and (allResponse is not None):
-        allStats = allResponse
+        allStats = list(allResponse)
         allStatsDict = statsListToDict(allStats)
         lastDate = sorted(list(allStatsDict.keys()), reverse=True)[0]
         todayStatsDict = {lastDate: allStatsDict[lastDate]}
@@ -267,6 +268,6 @@ def getTotalTimeseries(dataname):
 if __name__ == '__main__':
     routine()
     stopFlag = Event()
-    thread = TimerThread(stopFlag, routine)
+    thread = TimerThread(stopFlag, checkInterval, routine)
     thread.start()
     app.run(debug=False, port=5000, host='0.0.0.0')
