@@ -16,21 +16,40 @@ todayQuery = '?getir=sondurum'
 allQuery = '?getir=liste'
 checkInterval = 5 * 60  # seconds
 
-keysTRtoEN = {
-    'tarih': 'date',
-    'gunluk_test': 'test',
-    'gunluk_vaka': 'case',
-    'gunluk_vefat': 'death',
-    'gunluk_iyilesen': 'recovered',
-    'toplam_test': 'test',
-    'toplam_vaka': 'case',
-    'toplam_vefat': 'death',
-    'toplam_iyilesen': 'recovered',
-    'toplam_yogun_bakim': 'icuPatient',
-    'toplam_entube': 'intubatedPatient',
-    'hastalarda_zaturre_oran': 'pneumoniaPercent',
-    'agir_hasta_sayisi': 'seriouslyIllPatient'
+keysTRtoENCategory = {
+    'daily': {
+        'gunluk_test': 'test',
+        'gunluk_vaka': 'case',
+        'gunluk_vefat': 'death',
+        'gunluk_iyilesen': 'recovered'
+    },
+    'total': {
+        'toplam_test': 'test',
+        'toplam_vaka': 'case',
+        'toplam_vefat': 'death',
+        'toplam_iyilesen': 'recovered',
+        'toplam_yogun_bakim': 'icuPatient',
+        'toplam_entube': 'intubatedPatient',
+        'agir_hasta_sayisi': 'seriouslyIllPatient'
+    },
+    'weekly': {
+        'hastalarda_zaturre_oran': 'pneumoniaRate',
+        'yatak_doluluk_orani': 'hospitalBedOccupancyRate',
+        'eriskin_yogun_bakim_doluluk_orani': 'adultIcuOccupancyRate',
+        'ventilator_doluluk_orani': 'ventilatorOccupancyRate',
+        'ortalama_filyasyon_suresi': 'averageFiliationTime',
+        'ortalama_temasli_tespit_suresi': 'averagePositiveContactDetectionTime',
+        'filyasyon_orani': 'filiationRate'
+    }
 }
+
+percentKeys = [
+    'hastalarda_zaturre_oran',
+    'yatak_doluluk_orani',
+    'eriskin_yogun_bakim_doluluk_orani',
+    'ventilator_doluluk_orani',
+    'filyasyon_orani'
+]
 
 
 class TimerThread(Thread):
@@ -58,59 +77,38 @@ def getStats(query):
         return None
 
 
+def convertDayStats(dayStats):
+    dayDict = {category: {} for category in keysTRtoENCategory.keys()}
+
+    for category, origKeyDict in keysTRtoENCategory.items():
+        for originalKey, translatedKey in origKeyDict.items():
+            if (value := dayStats[originalKey]) != '':
+                func, replacement = (float, (',', '.')) if originalKey in percentKeys else (int, ('.', ''))
+                dayDict[category][translatedKey] = func(value.replace(*replacement))
+            else:
+                dayDict[category][translatedKey] = None
+
+    return dayDict
+
+
 def statsListToDict(stats):
     allDict = {}
-    previousDayStats = {
-        'gunluk_vaka': '0',
-        'gunluk_vefat': '0',
-        'gunluk_iyilesen': '0',
-        'toplam_vaka': '0',
-        'toplam_vefat': '0',
-        'toplam_iyilesen': '0',
-    }
 
     for dayStats in stats[::-1]:
         date = dateSeparator.join(dayStats.pop('tarih').split('.')[::-1])
-        allDict[date] = {'daily': {}, 'total': {}}
-        for key, value in dayStats.items():
-            if key.startswith('gunluk'):
-                if value != '':
-                    allDict[date]['daily'][keysTRtoEN[key]] = int(value.replace('.', ''))
-                else:
-                    totalKey = 'toplam_' + key.split('_')[1]
-                    if (previousValue := previousDayStats.get(totalKey, None)) and \
-                            (dayValue := dayStats.get(totalKey, None)):
-                        allDict[date]['daily'][keysTRtoEN[key]] = int(dayValue.replace('.', '')) \
-                                                                  - int(previousValue.replace('.', ''))
-                    else:
-                        allDict[date]['daily'][keysTRtoEN[key]] = None
-            else:
-                if value != '':
-                    if keysTRtoEN[key] == 'pneumoniaPercent':
-                        allDict[date]['total'][keysTRtoEN[key]] = float(value.replace(',', '.'))
-                    else:
-                        allDict[date]['total'][keysTRtoEN[key]] = int(value.replace('.', ''))
-                else:
-                    if (keysTRtoEN[key] == 'death') or (keysTRtoEN[key] == 'recovered'):
-                        allDict[date]['total'][keysTRtoEN[key]] = 0
-                    else:
-                        allDict[date]['total'][keysTRtoEN[key]] = None
-        previousDayStats = dict(dayStats)
+        allDict[date] = convertDayStats(dayStats)
 
     return allDict
 
 
 def generateTimeseries(allDict):
-    timeSeriesDict = {'daily': {'test': [], 'case': [], 'death': [], 'recovered': []},
-                      'total': {'test': [], 'case': [], 'death': [], 'recovered': [], 'icuPatient': [],
-                                'intubatedPatient': [], 'pneumoniaPercent': [], 'seriouslyIllPatient': []}}
-    dates = list(allDict.keys())
+    timeSeriesDict = {category: {key: [] for key in keyDict.values()} for category, keyDict in keysTRtoENCategory.items()}
 
-    for dataType, dictArray in timeSeriesDict.items():
-        for dataName, dataArray in dictArray.items():
-            for date, dayStats in allDict.items():
-                dataArray.append(dayStats[dataType][dataName])
-    timeSeriesDict['dates'] = dates
+    for dataCategory, categoryDict in timeSeriesDict.items():
+        for dataName, dataArray in categoryDict.items():
+            for dayStats in allDict.values():
+                dataArray.append(dayStats[dataCategory][dataName])
+    timeSeriesDict['dates'] = list(allDict.keys())
 
     return timeSeriesDict
 
@@ -123,12 +121,12 @@ def routine():
         allStats = list(allResponse)
         allStatsDict = statsListToDict(allStats)
         lastDate = sorted(list(allStatsDict.keys()), reverse=True)[0]
-        todayStatsDict = {lastDate: allStatsDict[lastDate]}
+        todayStatsDict = {lastDate: dict(allStatsDict[lastDate])}
         timeSeriesData = generateTimeseries(allStatsDict)
 
 
 @app.route('/', methods=['GET'])
-@app.route('/today_all', methods=['GET'])
+@app.route('/today-all', methods=['GET'])
 def getTodayAll():
     if (todayStatsDict != {}) and (todayStatsDict is not None):
         date, responseDict = dict(todayStatsDict).popitem()
@@ -157,6 +155,18 @@ def getTotal():
     if (todayStatsDict != {}) and (todayStatsDict is not None):
         date, responseDict = dict(todayStatsDict).popitem()
         responseDict = responseDict['total']
+        responseDict['date'] = date
+
+        return jsonify(responseDict), 200
+    else:
+        return '', 404
+
+
+@app.route('/weekly', methods=['GET'])
+def getWeek():
+    if (todayStatsDict != {}) and (todayStatsDict is not None):
+        date, responseDict = dict(todayStatsDict).popitem()
+        responseDict = responseDict['weekly']
         responseDict['date'] = date
 
         return jsonify(responseDict), 200
@@ -259,6 +269,23 @@ def getTotalTimeseries(dataname):
                 return jsonify(responseDict), 200
             else:
                 return 'Timeseries total data can only be ' + str(list(timeSeriesData['total'].keys())) + '!', 404
+        else:
+            return '', 404
+    else:
+        return '', 404
+
+
+@app.route('/timeseries/weekly/<string:dataname>', methods=['GET'])
+def getWeeklyTimeseries(dataname):
+    if (timeSeriesData != {}) and (timeSeriesData is not None):
+        if timeSeriesData.get('weekly', None) is not None:
+            if dataname in timeSeriesData['weekly']:
+                responseDict = {'weekly': {dataname: timeSeriesData['weekly'][dataname]},
+                                'dates': timeSeriesData['dates']}
+
+                return jsonify(responseDict), 200
+            else:
+                return 'Timeseries weekly data can only be ' + str(list(timeSeriesData['weekly'].keys())) + '!', 404
         else:
             return '', 404
     else:
