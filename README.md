@@ -2,10 +2,14 @@
 
 Provides information about COVID-19 in Turkey.
 
-- Gets data directly from **Republic of Turkey Ministry of Health COVID-19 API**.
-  - Last day's statistics: [https://covid19.saglik.gov.tr/covid19api?getir=sondurum](https://covid19.saglik.gov.tr/covid19api?getir=sondurum)
-  - All statistics: [https://covid19.saglik.gov.tr/covid19api?getir=liste](https://covid19.saglik.gov.tr/covid19api?getir=liste)
-- Checks the API every n (default is 300 in script) seconds, if anything changes in the stats script updates it's own data.
+- Gets data directly from **Republic of Turkey Ministry of Health COVID-19 nformation website**.
+  - Last day's statistics:
+    - **[TR]** [https://covid19.saglik.gov.tr/](https://covid19.saglik.gov.tr/?_Dil=1)
+    - **[EN]** [https://covid19.saglik.gov.tr/?_Dil=2](https://covid19.saglik.gov.tr/?_Dil=2)
+  - All statistics:
+    - **[TR]** [https://covid19.saglik.gov.tr/TR-66935/genel-koronavirus-tablosu.html](https://covid19.saglik.gov.tr/TR-66935/genel-koronavirus-tablosu.html)
+    - **[EN]** [https://covid19.saglik.gov.tr/EN-69532/general-coronavirus-table.html](https://covid19.saglik.gov.tr/EN-69532/general-coronavirus-table.html)
+- Checks the website every n (default is 300 in script) seconds, if anything changes in the stats script updates it's own data.
 - Provides an API for today's data, total data and a timeseries dataset for days.
 
 

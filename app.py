@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-import requests
+import requests, re, json
 from threading import Event, Thread
 
 app = Flask(__name__)
@@ -11,21 +11,20 @@ todayStatsDict = {}
 timeSeriesData = {}
 
 dateSeparator = '/'
-apiURL = 'https://covid19.saglik.gov.tr/covid19api'
-todayQuery = '?getir=sondurum'
-allQuery = '?getir=liste'
+statsPageURL = 'https://covid19.saglik.gov.tr/TR-66935/genel-koronavirus-tablosu.html'
 checkInterval = 5 * 60  # seconds
 
 keysTRtoENCategory = {
     'daily': {
         'gunluk_test': 'test',
         'gunluk_vaka': 'case',
+        'gunluk_hasta': 'patient',
         'gunluk_vefat': 'death',
         'gunluk_iyilesen': 'recovered'
     },
     'total': {
         'toplam_test': 'test',
-        'toplam_vaka': 'case',
+        'toplam_hasta': 'patient',
         'toplam_vefat': 'death',
         'toplam_iyilesen': 'recovered',
         'toplam_yogun_bakim': 'icuPatient',
@@ -66,10 +65,12 @@ class TimerThread(Thread):
             self.func(*self.args, **self.kwargs)
 
 
-def getStats(query):
+def getStats(pageURL):
     try:
-        response = requests.get(apiURL + query)
-        stats = response.json()
+        response = requests.get(pageURL)
+        jsonStr = re.findall("geneldurumjson\s=\s.*?;//]", response.text)[0]
+        jsonStr = re.sub('geneldurumjson\s=\s|;//]', '', jsonStr)
+        stats = json.loads(jsonStr)
 
         return stats
     except Exception as e:
