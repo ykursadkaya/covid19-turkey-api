@@ -116,13 +116,16 @@ def generateTimeseries(allDict):
 def routine():
     global allStats, allStatsDict, todayStatsDict, timeSeriesData
 
-    allResponse = getStats(allQuery)
-    if (allResponse != allStats) and (allResponse is not None):
-        allStats = list(allResponse)
-        allStatsDict = statsListToDict(allStats)
-        lastDate = sorted(list(allStatsDict.keys()), reverse=True)[0]
-        todayStatsDict = {lastDate: dict(allStatsDict[lastDate])}
-        timeSeriesData = generateTimeseries(allStatsDict)
+    try:
+        allResponse = getStats(statsPageURL)
+        if (allResponse != allStats) and (allResponse is not None):
+            allStats = list(allResponse)
+            allStatsDict = statsListToDict(allStats)
+            lastDate = sorted(list(allStatsDict.keys()), reverse=True)[0]
+            todayStatsDict = {lastDate: dict(allStatsDict[lastDate])}
+            timeSeriesData = generateTimeseries(allStatsDict)
+    except Exception as e:
+        print(e)
 
 
 @app.route('/', methods=['GET'])
