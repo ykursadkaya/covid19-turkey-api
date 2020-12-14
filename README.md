@@ -2,7 +2,7 @@
 
 Provides information about COVID-19 in Turkey.
 
-- Gets data directly from **Republic of Turkey Ministry of Health COVID-19 nformation website**.
+- Gets data directly from **Republic of Turkey Ministry of Health COVID-19 information website**.
   - Last day's statistics:
     - **[TR]** [https://covid19.saglik.gov.tr/](https://covid19.saglik.gov.tr/?_Dil=1)
     - **[EN]** [https://covid19.saglik.gov.tr/?_Dil=2](https://covid19.saglik.gov.tr/?_Dil=2)
