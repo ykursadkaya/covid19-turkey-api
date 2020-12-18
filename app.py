@@ -84,6 +84,7 @@ def convertDayStats(dayStats):
     for category, origKeyDict in keysTRtoENCategory.items():
         for originalKey, translatedKey in origKeyDict.items():
             if (value := dayStats[originalKey]) != '':
+                value = value.split()[0]
                 func, replacement = (float, (',', '.')) if originalKey in percentKeys else (int, ('.', ''))
                 dayDict[category][translatedKey] = func(value.replace(*replacement))
             else:
