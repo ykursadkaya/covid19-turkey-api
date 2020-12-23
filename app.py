@@ -68,7 +68,7 @@ class TimerThread(Thread):
 def getStats(pageURL):
     try:
         response = requests.get(pageURL)
-        jsonStr = re.findall("geneldurumjson\s=\s.*?;//]", response.text)[0]
+        jsonStr = re.findall('geneldurumjson\s=\s.*?;//]', response.text)[0]
         jsonStr = re.sub('geneldurumjson\s=\s|;//]', '', jsonStr)
         stats = json.loads(jsonStr)
 
