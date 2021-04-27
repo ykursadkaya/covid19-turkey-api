@@ -47,7 +47,8 @@ percentKeys = [
     'yatak_doluluk_orani',
     'eriskin_yogun_bakim_doluluk_orani',
     'ventilator_doluluk_orani',
-    'filyasyon_orani'
+    'filyasyon_orani',
+    'ortalama_temasli_tespit_suresi'
 ]
 
 
